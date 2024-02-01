@@ -1,7 +1,8 @@
 import {
     greet,
     Universe,
-    Cell
+    InitMode,
+    Cell,
 } from "wasm-game-of-life";
 import { memory } from "wasm-game-of-life/wasm_game_of_life_bg";
 
@@ -12,7 +13,7 @@ const GRID_COLOR = "#CCCCCC";
 const DEAD_COLOR = "#FFFFFF";
 const ALIVE_COLOR = "#000000";
 
-const universe = Universe.new();
+let universe = Universe.new(InitMode.Random);
 const width = universe.width();
 const height = universe.height();
 
