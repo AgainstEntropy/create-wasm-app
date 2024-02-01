@@ -23,14 +23,35 @@ canvas.width = (CELL_SIZE + 1) * width + 1;
 
 const ctx = canvas.getContext('2d');
 
-const renderLoop = () => {
-    universe.tick();
+let animationId = null;
+let animationFPS = 5;
+var now, then, elapsed, fpsInterval;
 
-    drawGrid();
-    drawCells();
-    requestAnimationFrame(renderLoop);
+const renderLoop = () => {
+    // debugger;
+
+    fpsInterval = 1000 / animationFPS;
+    now = Date.now();
+    elapsed = now - then;
+    if (elapsed > fpsInterval) {
+        then = now - (elapsed % fpsInterval);
+
+        universe.tick();
+        drawGrid();
+        drawCells();
+    }
+
+    animationId = requestAnimationFrame(renderLoop);
 };
 
+function startLoop() {
+    then = Date.now();
+    play();
+    drawGrid();
+    drawCells();
+}
+
+// render cells
 
 const drawGrid = () => {
     ctx.beginPath();
@@ -81,6 +102,96 @@ const drawCells = () => {
     ctx.stroke();
 };
 
-drawGrid();
-drawCells();
-requestAnimationFrame(renderLoop);
+// interactivity
+
+// play and pause control
+
+const playPauseButton = document.getElementById("play-pause");
+
+const play = () => {
+    playPauseButton.textContent = "⏸";
+    renderLoop();
+};
+
+const pause = () => {
+    playPauseButton.textContent = "▶";
+    cancelAnimationFrame(animationId);
+    animationId = null;
+};
+
+const isPaused = () => {
+    return animationId === null;
+};
+
+playPauseButton.addEventListener("click", event => {
+    if (isPaused()) {
+        play();
+    } else {
+        pause();
+    }
+});
+
+// speed control
+
+const speedControl = document.getElementById("speed");
+
+speedControl.addEventListener("input", event => {
+    animationFPS = speedControl.value;
+});
+
+// click to toggle cell
+
+const getClickedCell = event => {
+    const boundingRect = canvas.getBoundingClientRect();
+    
+    const scaleX = canvas.width / boundingRect.width;
+    const scaleY = canvas.height / boundingRect.height;
+    
+    const canvasLeft = (event.clientX - boundingRect.left) * scaleX;
+    const canvasTop = (event.clientY - boundingRect.top) * scaleY;
+    
+    const row = Math.min(Math.floor(canvasTop / (CELL_SIZE + 1)), height - 1);
+    const col = Math.min(Math.floor(canvasLeft / (CELL_SIZE + 1)), width - 1);
+    
+    return { row, col };
+}
+
+canvas.addEventListener("click", event => {
+    let clickedCell = getClickedCell(event);
+    
+    if (event.ctrlKey) {
+        universe.insert_glider(clickedCell.row, clickedCell.col);
+    } else if (event.shiftKey) {
+        universe.insert_pulsar(clickedCell.row, clickedCell.col);
+    } else {
+        universe.toggle_cell(clickedCell.row, clickedCell.col);
+    }
+    
+    drawGrid();
+    drawCells();
+});
+
+// reset button
+
+const resetButton = document.getElementById("reset");
+resetButton.textContent = "🔁";
+
+resetButton.addEventListener("click", event => {
+    universe.set_width(universe.width());
+
+    drawGrid();
+    drawCells();
+});
+
+const randomButton = document.getElementById("random");
+randomButton.textContent = "🎲";
+
+randomButton.addEventListener("click", event => {
+    universe = Universe.new(InitMode.Random, 0.3);
+
+    drawGrid();
+    drawCells();
+});
+
+
+startLoop();
